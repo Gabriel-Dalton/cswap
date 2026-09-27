@@ -9,8 +9,8 @@ Windows fixes. Upstream releases are merged in as they appear.
 - `cswap codex`: Codex CLI accounts, each its own `CODEX_HOME`, with usage
   read from Codex's session logs (`codex.py`).
 - `cswap handoff <account>` and the `/swap` slash command: copy one
-  conversation into another account's profile and resume it in a new
-  Windows Terminal window (`handoff.py`).
+  conversation into another account's profile and resume it under cmd in
+  a new Windows Terminal or console window (`handoff.py`).
 - "Use next" in `cswap list`, `list --json` (`useNext`) and the dashboard:
   every Claude and Codex account ranked by weekly quota about to expire,
   with `--model` awareness (`recommend.py`).

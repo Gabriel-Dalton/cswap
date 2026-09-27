@@ -182,7 +182,7 @@ cswap handoff 2 --no-launch           # copy only; prints the command to resume
 
 <img src="assets/handoff.svg" width="800" alt="cswap handoff output: the session copied to account 3 and the command that resumes it">
 
-Inside a session, `cswap handoff` reads the session id from `CLAUDE_CODE_SESSION_ID`; outside one it takes the newest conversation for the current directory. The transcript is copied, never moved, so the original account keeps its copy. Handing off to the account that is the default login resumes with plain `claude --resume`. The new window opens with Windows Terminal when `wt` is available; elsewhere the command to run is printed instead.
+Inside a session, `cswap handoff` reads the session id from `CLAUDE_CODE_SESSION_ID`; outside one it takes the newest conversation for the current directory. The transcript is copied, never moved, so the original account keeps its copy. Handing off to the account that is the default login resumes with plain `claude --resume`. On Windows the new window runs the command in cmd: a Windows Terminal window when `wt` is available, a plain console window otherwise. On other platforms the command to run is printed instead.
 
 A session started with `cswap run` registers under its own profile, so sessions on the default login cannot list or message it, and vice versa. That is Claude Code's per-config-dir session registry, not something cswap can bridge.
 
