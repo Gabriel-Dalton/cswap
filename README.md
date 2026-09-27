@@ -1,19 +1,21 @@
-# claude-swap
+# cswap
 
-Multi-account switcher for Claude Code. Easily switch between multiple Claude accounts without logging out, or let it switch for you before you hit a rate limit. Track usage for every account in a live dashboard, and run accounts in parallel. Works with both the Claude Code CLI and the VS Code extension.
+Multi-account switcher for Claude Code and Codex. See every subscription's quota from one terminal, switch between Claude accounts without logging out, hand a conversation to another account, and let it tell you which account to use next so nothing goes unused before its weekly reset. Track usage for every account in a live dashboard, and run accounts in parallel. Works with the Claude Code CLI, the VS Code extension, and the Codex CLI.
+
+A fork of [realiti4/claude-swap](https://github.com/realiti4/claude-swap); the `cswap` command and the `claude_swap` package name are unchanged so upstream releases keep merging in. Fork-specific notes live in [docs/fork-plan.md](docs/fork-plan.md).
 
 ## Installation
 
 ### Using uv (recommended)
 
 ```bash
-uv tool install claude-swap
+uv tool install git+https://github.com/Gabriel-Dalton/cswap
 ```
 
 ### Using pipx
 
 ```bash
-pipx install claude-swap
+pipx install git+https://github.com/Gabriel-Dalton/cswap
 ```
 
 ### From source
