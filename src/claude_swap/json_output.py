@@ -243,6 +243,7 @@ def account_row(
     alias: str = "",
     disabled: bool = False,
     login_expires_at: str | None = None,
+    plan: str = "",
 ) -> dict:
     """A full account row for ``--list``. ``backoff_until`` is the live
     backoff only; a lapsed one is the caller's to withhold."""
@@ -259,6 +260,8 @@ def account_row(
     }
     if alias:
         row["alias"] = alias
+    if plan:
+        row["plan"] = plan
     # Additive field: present only when the slot is held out of rotation, so
     # existing consumers keying on the base schema are unaffected.
     if disabled:
