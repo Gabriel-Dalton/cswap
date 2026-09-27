@@ -25,7 +25,7 @@ from claude_swap.exceptions import (
     SwitchError,
     ValidationError,
 )
-from claude_swap import oauth, pace
+from claude_swap import oauth, pace, plan_tier
 from claude_swap.claude_locks import claude_config_lock, claude_credentials_lock
 from claude_swap.json_output import (
     SCHEMA_VERSION,
@@ -1749,7 +1749,7 @@ class ClaudeAccountSwitcher:
         seq_data = self._get_sequence_data() or {}
         active_number: str | None = None
         accounts: list[AccountSnapshot] = []
-        for num, email, org_name, org_uuid, is_active, _creds, alias in accounts_info:
+        for num, email, org_name, org_uuid, is_active, creds, alias in accounts_info:
             n = str(num)
             if is_active:
                 active_number = n
@@ -1765,6 +1765,7 @@ class ClaudeAccountSwitcher:
                     usage=entries[n],
                     alias=alias,
                     disabled=self._disabled_from_data(seq_data, n),
+                    plan=plan_tier.from_credentials(creds),
                 )
             )
         return AccountsSnapshot(
@@ -5492,6 +5493,7 @@ class ClaudeAccountSwitcher:
                     alias=alias,
                     disabled=self._disabled_from_data(seq_data, str(num)),
                     login_expires_at=oauth.login_expires_at_iso(creds),
+                    plan=plan_tier.from_credentials(creds),
                 )
             )
         payload = {
@@ -5548,8 +5550,11 @@ class ClaudeAccountSwitcher:
 
         seq_data = self._get_sequence_data() or {}
         print(bolded("Accounts:"))
-        for i, (num, email, org_name, org_uuid, is_active, _, alias) in enumerate(accounts_info):
-            tag = self._get_display_tag(email, org_name, org_uuid)
+        for i, (num, email, org_name, org_uuid, is_active, creds, alias) in enumerate(accounts_info):
+            tag = plan_tier.with_plan(
+                self._get_display_tag(email, org_name, org_uuid),
+                plan_tier.from_credentials(creds),
+            )
             label = f"{accent(alias)} ({email})" if alias else email
             markers = ""
             if is_active:

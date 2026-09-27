@@ -140,11 +140,13 @@ class AccountSnapshot:
     usage: UsageEntry
     alias: str = ""
     disabled: bool = False  # held out of auto-rotation (still a valid explicit target)
+    plan: str = ""
 
     @property
     def display_tag(self) -> str:
-        """Org tag for display: the org name, or 'personal'."""
-        return self.org_name if self.org_name else "personal"
+        """Org tag for display: the org name, or 'personal', plus the plan when known."""
+        tag = self.org_name if self.org_name else "personal"
+        return f"{tag} · {self.plan}" if self.plan else tag
 
 
 @dataclass(frozen=True)
