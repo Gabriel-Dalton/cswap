@@ -409,25 +409,32 @@ class CodexPanel(Static):
 
     REFRESH_S = 30.0
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._accounts: list["codex.CodexAccount"] = []
+
     def on_mount(self) -> None:
         self.watch(self.app, "theme", lambda _t: self.refresh(layout=True))
-        self.set_interval(self.REFRESH_S, lambda: self.refresh(layout=True))
+        self.reload()
+        self.set_interval(self.REFRESH_S, self.reload)
+
+    def reload(self) -> None:
+        try:
+            self._accounts = codex.load_accounts()
+        except Exception:
+            self._accounts = []
+        self.display = bool(self._accounts)
+        self.refresh(layout=True)
 
     def render(self) -> Text:
         app: "CswapApp" = self.app  # type: ignore[assignment]
         palette = Palette.from_theme(app.current_theme)
-        try:
-            accounts = codex.load_accounts()
-        except Exception:
-            accounts = []
-        if not accounts:
-            self.display = False
+        if not self._accounts:
             return Text("")
-        self.display = True
         now = time.time()
         width = (self.size.width or 80) - 2
         text = Text("codex", style=f"bold {palette.muted}")
-        for acc in accounts:
+        for acc in self._accounts:
             text.append("\n")
             text.append(
                 codex_card_text(acc, codex.cached_usage(acc), width, now=now, palette=palette)

@@ -68,9 +68,13 @@ class CodexAccount:
 
     @property
     def plan_label(self) -> str | None:
-        if not self.plan:
-            return None
-        return _PLAN_LABELS.get(self.plan, self.plan.replace("_", " ").title())
+        return plan_label(self.plan)
+
+
+def plan_label(plan: str | None) -> str | None:
+    if not plan:
+        return None
+    return _PLAN_LABELS.get(plan, plan.replace("_", " ").title())
 
 
 # -- homes and the account store ---------------------------------------------
@@ -181,6 +185,10 @@ def _check_name(name: str) -> None:
         raise ClaudeSwitchError(
             f"Invalid Codex account name '{name}' (use letters, digits, '-', '_', '.')"
         )
+    if name.isdigit():
+        raise ClaudeSwitchError(
+            f"Invalid Codex account name '{name}' (numbers select accounts by position)"
+        )
 
 
 def add_account(name: str, home: Path | None = None) -> CodexAccount:
@@ -240,7 +248,10 @@ def run_account(target: str, args: list[str]) -> None:
     exe = _codex_executable()
     env = {**os.environ, "CODEX_HOME": str(acc.home)}
     if sys.platform == "win32":
-        sys.exit(subprocess.call([exe, *args], env=env))
+        try:
+            sys.exit(subprocess.call([exe, *args], env=env))
+        except KeyboardInterrupt:
+            sys.exit(130)
     os.execve(exe, [exe, *args], env)
 
 
@@ -368,8 +379,25 @@ def read_usage(home: Path, now: float | None = None) -> CodexUsage:
         usage=usage,
         fetched_at=main_at,
         plan=main.get("plan_type"),
-        limit_reached=bool(main.get("rate_limit_reached_type")),
+        limit_reached=_limit_still_reached(main, now),
     )
+
+
+def _limit_still_reached(main: dict, now: float) -> bool:
+    """The logged flag, unless the window it refers to has reset since."""
+    reached = main.get("rate_limit_reached_type")
+    if not reached:
+        return False
+    windows = [main.get(k) for k in ("primary", "secondary")]
+    if reached in ("primary", "secondary"):
+        windows = [main.get(reached)]
+    resets = [
+        w.get("resets_at") for w in windows
+        if isinstance(w, dict) and isinstance(w.get("resets_at"), (int, float))
+    ]
+    if not resets:
+        return True
+    return any(r > now for r in resets)
 
 
 _cache: dict[str, tuple[float, CodexUsage]] = {}
@@ -388,8 +416,7 @@ def cached_usage(acc: CodexAccount) -> CodexUsage:
 
 
 def display_plan(acc: CodexAccount, usage: CodexUsage) -> str | None:
-    plan = acc.plan or usage.plan
-    return _PLAN_LABELS.get(plan, plan) if plan else None
+    return plan_label(acc.plan or usage.plan)
 
 
 # -- JSON ----------------------------------------------------------------------

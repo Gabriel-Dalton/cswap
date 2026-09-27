@@ -134,6 +134,22 @@ class TestReadUsage:
         ])
         assert codex.read_usage(tmp_path, NOW).limit_reached is True
 
+    def test_limit_flag_clears_once_that_window_resets(self, tmp_path):
+        week = {"used_percent": 100.0, "window_minutes": 10080, "resets_at": NOW - 60}
+        _session(tmp_path, "a", [
+            _event(NOW - DAY, _limits(week, rate_limit_reached_type="primary"))
+        ])
+        usage = codex.read_usage(tmp_path, NOW)
+        assert usage.limit_reached is False
+        assert usage.usage["seven_day"]["pct"] == 0.0
+
+    def test_limit_flag_without_reset_time_is_trusted(self, tmp_path):
+        week = {"used_percent": 100.0, "window_minutes": 10080}
+        _session(tmp_path, "a", [
+            _event(NOW - 60, _limits(week, rate_limit_reached_type="primary"))
+        ])
+        assert codex.read_usage(tmp_path, NOW).limit_reached is True
+
 
 class TestAccountStore:
     def test_default_home_listed_when_logged_in(self, temp_home):
@@ -175,6 +191,11 @@ class TestAccountStore:
     def test_add_refuses_a_home_without_login(self, temp_home, tmp_path):
         with pytest.raises(ClaudeSwitchError, match="No Codex login"):
             codex.add_account("empty", tmp_path)
+
+    def test_add_refuses_a_numeric_name(self, temp_home):
+        _login(temp_home / ".codex")
+        with pytest.raises(ClaudeSwitchError, match="position"):
+            codex.add_account("2")
 
     def test_add_refuses_a_taken_name(self, temp_home, tmp_path):
         _login(tmp_path / "one")
