@@ -25,7 +25,7 @@ from claude_swap.exceptions import (
     SwitchError,
     ValidationError,
 )
-from claude_swap import oauth, pace, plan_tier
+from claude_swap import oauth, pace, plan_tier, recommend
 from claude_swap.claude_locks import claude_config_lock, claude_credentials_lock
 from claude_swap.json_output import (
     SCHEMA_VERSION,
@@ -5512,6 +5512,7 @@ class ClaudeAccountSwitcher:
         unclaimed = self._store._list_unclaimed_credentials()
         if unclaimed:
             payload["unclaimedCredentials"] = sorted(unclaimed)
+        payload["useNext"] = recommend.payload(self._recommendation(accounts_info, entries))
         return payload
 
     def list_accounts(
@@ -5572,6 +5573,7 @@ class ClaudeAccountSwitcher:
                 print()
 
         self._print_codex_accounts()
+        self._print_use_next(accounts_info, entries)
 
         # Safety copies (unclaimed credentials) are deliberately NOT surfaced
         # here: users can't act on them (recovery is always /login + cswap
@@ -5618,6 +5620,38 @@ class ClaudeAccountSwitcher:
                     print(f"  {dimmed('●')} {muted(label)}   {muted(cwd)}  {dimmed(f'({", ".join(parts)})')}")
         except Exception:
             self._logger.debug("Failed to detect running instances", exc_info=True)
+
+    recommend_models: tuple[str, ...] | None = None
+
+    def _recommendation(self, accounts_info, entries) -> "recommend.Recommendation":
+        from claude_swap.settings import load_settings, parse_model_names
+
+        models = self.recommend_models
+        if models is None:
+            models = parse_model_names(load_settings(self.backup_dir).model)
+        seq_data = self._get_sequence_data() or {}
+        disabled = {
+            str(num) for num, *_ in accounts_info if self._disabled_from_data(seq_data, str(num))
+        }
+        now = self._usage_store.clock()
+        candidates = recommend.claude_candidates(
+            accounts_info, entries, disabled=disabled, now=now, models=models
+        )
+        candidates += recommend.codex_candidates(now, models)
+        return recommend.recommend(candidates, models=models, now=now)
+
+    def _print_use_next(self, accounts_info, entries) -> None:
+        try:
+            lines = recommend.format_lines(self._recommendation(accounts_info, entries))
+        except Exception:
+            self._logger.debug("Use-next recommendation failed", exc_info=True)
+            return
+        if not lines:
+            return
+        print()
+        print(f"{bolded('Use next:')} {accent(lines[0].split(': ', 1)[1])}")
+        for line in lines[1:]:
+            print(f"  {muted(line)}")
 
     def _print_codex_accounts(self) -> None:
         """The Codex section of ``cswap list``: one block per CODEX_HOME."""

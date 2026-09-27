@@ -26,7 +26,9 @@ from textual.screen import Screen
 from textual.widgets import Footer, ListView, Static
 
 from claude_swap.models import AccountsSnapshot
-from claude_swap.tui.widgets import AccountItem, AccountsPanel, CodexPanel, MenuItem
+from claude_swap.tui.widgets import (
+    AccountItem, AccountsPanel, CodexPanel, MenuItem, UseNextPanel,
+)
 
 if TYPE_CHECKING:
     from claude_swap.tui.app import CswapApp
@@ -61,6 +63,7 @@ class DashboardScreen(Screen):
     def compose(self) -> ComposeResult:
         yield AccountsPanel(id="accounts-panel")
         yield CodexPanel(classes="codex-panel")
+        yield UseNextPanel(classes="codex-panel")
         yield Static("", id="menu-title")
         yield ListView(id="menu")
         yield Footer()
@@ -358,6 +361,7 @@ class WatchScreen(AccountListScreen):
         yield Static("", id="list-title")
         yield ListView(id="accounts")
         yield CodexPanel(classes="codex-panel")
+        yield UseNextPanel(classes="codex-panel")
         yield Footer()
 
     def on_mount(self) -> None:

@@ -1403,12 +1403,12 @@ The original flag spellings (%(prog)s --switch, %(prog)s --list, ...) keep worki
     if args.strategy is not None and not args.switch:
         parser.error("--strategy can only be used with bare 'switch'")
 
-    if args.model is not None and args.strategy is None:
+    if args.model is not None and args.strategy is None and not args.list:
         # Meaningless on a direct-target switch or plain rotation — nothing
         # usage-aware reads it there, so reject loudly rather than ignore.
         parser.error(
-            "--model can only be used with 'switch --strategy best' or "
-            "'switch --strategy next-available'"
+            "--model can only be used with 'switch --strategy best', "
+            "'switch --strategy next-available', or 'list'"
         )
 
     if args.slot is not None and not (args.add_account or args.add_token is not None):
@@ -1479,6 +1479,10 @@ The original flag spellings (%(prog)s --switch, %(prog)s --list, ...) keep worki
         elif args.enable_account is not None:
             switcher.set_account_disabled(args.enable_account, False)
         elif args.list:
+            if args.model is not None:
+                from claude_swap.settings import parse_model_names
+
+                switcher.recommend_models = parse_model_names(args.model)
             payload = switcher.list_accounts(
                 show_token_status=args.token_status,
                 json_output=args.json,

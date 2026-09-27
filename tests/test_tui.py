@@ -745,6 +745,25 @@ class TestDashboard:
             mini_part = panel.split("user2@example.com", 1)[1]
             assert "━" not in mini_part
 
+    async def test_use_next_panel_ranks_the_snapshot(self, tmp_path, monkeypatch):
+        from claude_swap import recommend
+        from claude_swap.tui.widgets import UseNextPanel
+
+        monkeypatch.setattr(recommend, "codex_candidates", lambda *a, **k: [])
+        fake = FakeSwitcher(
+            [
+                make_account(1, active=True, entry=make_entry(47.0, 63.0)),
+                make_account(2, entry=make_entry(12.0, 20.0)),
+            ],
+            tmp_path,
+        )
+        app = make_app(fake)
+        async with app.run_test(size=(100, 32)) as pilot:
+            await settle(pilot)
+            panel = app.screen.query_one(UseNextPanel).render().plain
+            assert panel.startswith("Use next: user2@example.com, 80% of the week left")
+            assert "user1@example.com: 37% of the week left" in panel
+
     async def test_disabled_marker_on_active_card_and_mini(self, tmp_path):
         # A disabled account is still shown; it's just annotated so the user
         # can see it's held out of auto-rotation — on the full card when it's
