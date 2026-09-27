@@ -184,6 +184,8 @@ A session started with `cswap run` registers under its own profile, so sessions 
 
 Run `cswap` on its own (or `cswap tui`) for the full-screen dashboard: live usage for every account, switching, and the auto-switcher, all keyboard-driven. `cswap watch` opens it straight to the live monitor. Works on macOS, Linux, and Windows.
 
+The dashboard also shows which account to use next (see below). Selecting an account rewrites the default login by default; with `cswap config set ui.selectAction run` it opens a new terminal window running `cswap run <account>` instead, leaving the default login alone.
+
 <img src="assets/tui-watch.png" width="760" alt="cswap watch — live 5h/7d usage bars for every account, with reset times and the active account marked">
 
 ### Refresh expired tokens

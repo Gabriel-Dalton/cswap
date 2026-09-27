@@ -65,6 +65,7 @@ class UiSettings:
     color theme; ``auto`` follows terminal-background detection."""
 
     theme: str = "auto"
+    select_action: str = "switch"
 
 
 _SECTION_DEFAULT_SOURCES = {"autoswitch": AutoSwitchSettings, "ui": UiSettings}
@@ -138,6 +139,10 @@ SETTING_SPECS: dict[str, SettingSpec] = {
         SettingSpec(
             "ui", "theme", "theme", "choice", choices=("dark", "light", "auto"),
             help="Color theme; auto follows the terminal background",
+        ),
+        SettingSpec(
+            "ui", "selectAction", "select_action", "choice", choices=("switch", "run"),
+            help="What selecting an account in the TUI does: switch the default login, or open a new window with cswap run",
         ),
     )
 }
@@ -245,7 +250,14 @@ def load_ui_settings(backup_root: Path) -> UiSettings:
             theme, default.theme,
         )
         return default
-    return UiSettings(theme=theme)
+    select_action = section.get("selectAction", default.select_action)
+    if select_action not in SETTING_SPECS["ui.selectAction"].choices:
+        _logger.warning(
+            "settings.json: unsupported ui.selectAction %r; using %r",
+            select_action, default.select_action,
+        )
+        select_action = default.select_action
+    return UiSettings(theme=theme, select_action=select_action)
 
 
 def save_settings(backup_root: Path, settings: AutoSwitchSettings) -> None:

@@ -764,6 +764,25 @@ class TestDashboard:
             assert panel.startswith("Use next: user2@example.com, 80% of the week left")
             assert "user1@example.com: 37% of the week left" in panel
 
+    async def test_select_action_run_opens_a_window_instead_of_switching(
+        self, tmp_path, monkeypatch
+    ):
+        from claude_swap import handoff
+
+        opened = []
+        monkeypatch.setattr(handoff, "open_new_terminal", lambda cmd, cwd: opened.append(cmd) or True)
+        fake = FakeSwitcher([make_account(1, active=True), make_account(2)], tmp_path)
+        switched = []
+        monkeypatch.setattr(fake, "switch_to", lambda *a, **k: switched.append(a), raising=False)
+        app = make_app(fake)
+        async with app.run_test(size=(100, 32)) as pilot:
+            await settle(pilot)
+            app.select_action = "run"
+            app.do_switch("2")
+            await settle(pilot)
+        assert opened == [["cswap", "run", "2"]]
+        assert switched == []
+
     async def test_disabled_marker_on_active_card_and_mini(self, tmp_path):
         # A disabled account is still shown; it's just annotated so the user
         # can see it's held out of auto-rotation — on the full card when it's
