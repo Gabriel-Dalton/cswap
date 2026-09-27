@@ -1,76 +1,72 @@
-# Fork plan
+# Fork notes
 
-Review of the fork as of 2026-09-27 and the order of work. The brief that
-prompted it lives outside the tree.
+This fork of realiti4/claude-swap adds Codex accounts, conversation handoff,
+a use-next recommendation across providers, plan tier labels, and a few
+Windows fixes. Upstream releases are merged in as they appear.
 
-## Baseline
+## What 1.0.0 adds over upstream 0.27.0b1
 
-`uv run pytest -q -p no:cacheprovider`: 4 failed, 2107 passed, 77 skipped.
-All four failures create symlinks, which needs a privilege on Windows.
+- `cswap codex`: Codex CLI accounts, each its own `CODEX_HOME`, with usage
+  read from Codex's session logs (`codex.py`).
+- `cswap handoff <account>` and the `/swap` slash command: copy one
+  conversation into another account's profile and resume it in a new
+  Windows Terminal window (`handoff.py`).
+- "Use next" in `cswap list`, `list --json` (`useNext`) and the dashboard:
+  every Claude and Codex account ranked by weekly quota about to expire,
+  with `--model` awareness (`recommend.py`).
+- Plan tier labels next to the org name (`plan_tier.py`).
+- `ui.selectAction run`: selecting an account in the dashboard opens a new
+  window with `cswap run` instead of rewriting the default login.
+- Update check against upstream's GitHub releases and `cswap upgrade` that
+  reinstalls from the checkout (`fork_update.py`).
+- Symlink tests skip where symlinks cannot be created.
+
+## Keeping upstream merges clean
+
+Fork-owned modules: `codex.py`, `handoff.py`, `recommend.py`,
+`plan_tier.py`, `fork_update.py`, `tests/test_codex.py`,
+`tests/test_handoff.py`, `tests/test_recommend.py`, `tests/test_plan_tier.py`,
+`tests/test_fork_update.py`, this file.
+
+Hooks into upstream files, each a few lines: `cli.py` (pre-dispatch for
+`codex` and `handoff`, `--model` on `list`, the two update-check imports),
+`switcher.py` (Codex section, use-next section, plan label, `useNext` in
+JSON), `json_output.py` (`plan`), `models.py` (`plan`), `settings.py`
+(`ui.selectAction`), `tui/app.py` (`select_action`), `tui/dashboard.py`
+(two panels), `tui/widgets.py` (Codex and use-next panels), `tui/cswap.tcss`,
+`tests/conftest.py` (`require_symlinks`), `tests/test_cli.py` (update-check
+patch targets).
+
+After merging upstream: set `UPSTREAM_BASE` in `fork_update.py` to the
+merged release, bump `version` in `pyproject.toml`, run `uv lock`, run the
+suite, reinstall. On Windows every open `cswap run` window and dashboard
+keeps the tool's launcher resident, so `uv tool install --force --reinstall`
+fails to replace it; `cswap upgrade` prints the install that works there
+(`uv pip install` into the tool environment).
 
 ## Findings
 
 - A running Claude Code session exposes `CLAUDE_CODE_SESSION_ID` and
-  `CLAUDE_CONFIG_DIR` to its shell, so a slash command can hand both to
-  `cswap handoff` without guessing.
-- Transcript folders are `<config>/projects/<slug>/`, where the slug is the
-  cwd with every non-alphanumeric character replaced by `-`. A session may
-  have no transcript on disk yet (only `session-env/<id>`), so handoff must
-  search by id across project folders, fall back to the newest transcript
-  for the cwd, and report clearly when nothing is found.
-- The uv tool receipt points at this directory, so `uv tool upgrade
-  claude-swap` reinstalls the fork, not PyPI. The update check never fires:
-  `_parse_version("0.26.0+codex.1")` raises and the error is swallowed.
-- Stored credentials carry `subscriptionType` / `rateLimitTier`:
-  `max` / `default_claude_max_20x`, `team` / `default_claude_max_5x`,
-  `team` / `default_raven`. Labels need a small mapping with the raw tier
-  as fallback.
-- Usage polling is within budget: zero 429s in the log, intervals of
-  270 / 450 / 300 s against a cap of roughly 28 to 30 requests per hour per
-  identity. Only the default login shares its identity with the status
-  line and the desktop widget.
-- `sequence.json` records `activeAccountNumber: 3` while the live
-  credentials belong to account 1. Check what the field means before using it.
-- The per-profile `sessions/<pid>.<hash>.key` registry is why sessions on
-  different config dirs cannot see each other. Claude scans only its own
-  config dir, so this is not cheap to fix from cswap.
-
-### Codex module
-
-- `limit_reached` survives a window rollover: usage is zeroed but the flag
-  stays true, so the card warns and any ranking would skip a fresh account.
-- `CodexPanel.render` sets `self.display` inside `render`; move it to the
-  refresh timer.
-- `add_account` accepts a digits-only name that `find_account` resolves
-  positionally. Reject it.
-- `CodexAccount.plan_label` and `display_plan` duplicate each other with
-  different fallbacks. Keep one.
-- Ctrl+C while Codex runs on Windows prints "Operation cancelled" from the
-  parent while the child may still be running.
-- Scoped limits found only in older session files are dropped once the
-  main limit is found. The `credits` block in the log is unused.
-
-## Order of work
-
-1. Skip the four symlink tests when symlinks cannot be created.
-2. Handoff, levels 1 and 2: `handoff.py` with a pre-dispatch hook in
-   `cli.py`. Locate the transcript, bootstrap the target profile without
-   launching, copy transcript and sibling folder, refuse to overwrite,
-   launch `wt.exe -w new -d <cwd> cswap run <acct> -- --resume <id>`,
-   print the close-window line. Handing off to the default login launches
-   plain `claude --resume`. Ship `/swap` as a user command that calls the
-   handoff with the two environment variables. Verify end to end. README
-   section describing `cswap switch` as the all-or-nothing option.
-3. Update check against upstream GitHub releases with the same cache;
-   `cswap upgrade` prints the pull-and-reinstall command for this directory.
-4. Codex fixes listed above, with tests.
-5. Plan tier labels in list, JSON and dashboard.
-6. Use-next recommendation in `recommend.py`, reusing `account_headroom`,
-   the weekly reset helper and `pace`: rank by unused weekly percent over
-   time to reset, skip limit-reached, honour `--model` through scoped
-   windows, include Codex. Surface in list, JSON and dashboard.
-7. Dashboard setting so selecting an account launches `cswap run <n>` in a
-   new terminal instead of rewriting the default login.
-8. Level 3 experiment (per-window profile copy and `switch --here`), plus a
-   README note on the session registry gap.
-9. Poll pressure: report only.
+  `CLAUDE_CONFIG_DIR` to its shell; `cswap handoff` reads both.
+- Transcripts live at `<config>/projects/<slug>/<session-id>.jsonl`, where
+  the slug is the cwd with every non-alphanumeric character replaced by `-`.
+  A session that has not completed an exchange has no transcript yet.
+- Claude Code watches `.credentials.json` by mtime and emits a
+  "credentials changed on disk" event, so a running session adopts a
+  rewritten credential file. That is the mechanism an in-place
+  `switch --here` would rely on. Not shipped: the watcher exists for token
+  rotation of the same account, whether cached identity (org, user) follows
+  is unproven, cswap's profiles are keyed by account and treat identity
+  drift as an invalid profile, and two live copies of one credential drift
+  when the server rotates the refresh token. Handoff is the supported path.
+- Sessions register under `<config>/sessions/`, so sessions on different
+  config dirs cannot see or message each other. Claude only scans its own
+  dir; not something cswap can bridge.
+- Usage polling stays inside the measured budget: intervals of 270 to 450
+  seconds per account against roughly 28 to 30 requests per hour per
+  identity, zero 429s logged. Only the default login shares its identity
+  with the status line and desktop widget. No change made.
+- `sequence.json`'s `activeAccountNumber` is the last slot added (kept in
+  step by swap and move), not the live default login.
+- Stored credentials carry `subscriptionType` / `rateLimitTier`; known
+  tiers map to labels in `plan_tier.py`, unknown ones show raw.

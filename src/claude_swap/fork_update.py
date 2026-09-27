@@ -19,15 +19,11 @@ from claude_swap.cache import CACHE_DIR, MISSING, read_cache, write_cache
 from claude_swap.update_check import _is_newer
 
 UPSTREAM_REPO = "realiti4/claude-swap"
+UPSTREAM_BASE = "0.27.0b1"
 FORK_REPO = "Gabriel-Dalton/claude-swap"
 UPSTREAM_LATEST_URL = f"https://api.github.com/repos/{UPSTREAM_REPO}/releases/latest"
 CACHE_PATH = CACHE_DIR / "fork_update_check.json"
 CACHE_TTL = 24 * 3600
-
-
-def base_version(version: str) -> str:
-    """The upstream release this fork build is based on (``0.27.0b1+codex.1`` -> ``0.27.0b1``)."""
-    return version.split("+", 1)[0]
 
 
 def source_dir() -> Path | None:
@@ -55,7 +51,11 @@ def fetch_upstream_version() -> str | None:
 
 
 def check_for_update(current_version: str) -> str | None:
-    """A one-line notice when upstream has released past this fork's base."""
+    """A one-line notice when upstream has released past ``UPSTREAM_BASE``.
+
+    ``current_version`` is the fork's own version and only decorates the
+    message; bump ``UPSTREAM_BASE`` on every upstream merge.
+    """
     try:
         cached = read_cache(CACHE_PATH, CACHE_TTL)
         if cached is not MISSING:
@@ -66,13 +66,14 @@ def check_for_update(current_version: str) -> str | None:
             except Exception:
                 latest = None
             write_cache(CACHE_PATH, latest)
-        base = base_version(current_version)
+        base = UPSTREAM_BASE
         if not latest or not _is_newer(latest, base):
             return None
         src = source_dir()
         where = f"git -C {src} " if src else "git "
         return (
-            f"Upstream claude-swap {latest} is out; this fork is based on {base}. "
+            f"Upstream claude-swap {latest} is out; this build ({current_version}) "
+            f"is based on {base}. "
             f"Merge it with `{where}fetch upstream && {where}merge upstream/main`, "
             f"then `cswap upgrade` to reinstall."
         )
@@ -82,16 +83,26 @@ def check_for_update(current_version: str) -> str | None:
 
 def upgrade_commands() -> list[list[str]]:
     src = source_dir()
+    target = str(src) if src else f"git+https://github.com/{FORK_REPO}"
+    if sys.platform == "win32":
+        install = [
+            "uv", "pip", "install", "--python", sys.executable,
+            "--reinstall-package", "claude-swap", target,
+        ]
+    else:
+        install = ["uv", "tool", "install", "--force", "--reinstall", target]
     if src is None:
-        return [["uv", "tool", "install", "--force", "--reinstall", f"git+https://github.com/{FORK_REPO}"]]
-    return [
-        ["git", "-C", str(src), "pull", "--ff-only"],
-        ["uv", "tool", "install", "--force", "--reinstall", str(src)],
-    ]
+        return [install]
+    return [["git", "-C", str(src), "pull", "--ff-only"], install]
 
 
 def run_self_upgrade() -> int:
-    """Reinstall this fork. Windows only prints the commands: the running launcher is locked."""
+    """Reinstall this fork.
+
+    Windows only prints the commands: every open ``cswap run`` window and
+    dashboard keeps the tool's launcher resident, so ``uv tool install``
+    cannot replace it; installing into the tool environment can.
+    """
     from claude_swap.printer import accent, error
 
     commands = upgrade_commands()
