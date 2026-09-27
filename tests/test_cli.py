@@ -152,7 +152,7 @@ class TestCLI:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "--list", "--token-status"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
 
         switcher_cls.return_value.list_accounts.assert_called_once_with(
@@ -195,7 +195,7 @@ class TestCLI:
              patch("os.geteuid", return_value=1000, create=True), \
              patch("claude_swap.settings.load_settings",
                    return_value=AutoSwitchSettings()), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
 
         switcher_cls.return_value.switch.assert_called_once_with(
@@ -212,7 +212,7 @@ class TestCLI:
              patch("os.geteuid", return_value=1000, create=True), \
              patch("claude_swap.settings.load_settings",
                    return_value=AutoSwitchSettings(model="Fable")), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
 
         switcher_cls.return_value.switch.assert_called_once_with(
@@ -232,7 +232,7 @@ class TestCLI:
              patch("os.geteuid", return_value=1000, create=True), \
              patch("claude_swap.settings.load_settings",
                    return_value=AutoSwitchSettings(model="Sonnet")), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
 
         switcher_cls.return_value.switch.assert_called_once_with(
@@ -253,7 +253,7 @@ class TestCLI:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "--switch"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
 
         switcher_cls.return_value.switch.assert_called_once_with(
@@ -305,7 +305,7 @@ class TestCLI:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "--switch-to", "2", "--force"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
 
         switcher_cls.return_value.switch_to.assert_called_once_with(
@@ -317,7 +317,7 @@ class TestCLI:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "--switch-to", "2"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
 
         switcher_cls.return_value.switch_to.assert_called_once_with(
@@ -362,7 +362,7 @@ class TestCLI:
                  sys, "argv", ["claude-swap", "--export", "/tmp/x", "--account", "2"]
              ), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
         export_fn.assert_called_once_with(
             switcher_cls.return_value, "/tmp/x", account="2", full=False
@@ -384,7 +384,7 @@ class TestCLI:
                  sys, "argv", ["claude-swap", "--export", "/tmp/x", "--full"]
              ), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
         export_fn.assert_called_once_with(
             switcher_cls.return_value, "/tmp/x", account=None, full=True
@@ -398,7 +398,7 @@ class TestCLI:
                  sys, "argv", ["claude-swap", "--import", "/tmp/x", "--force"]
              ), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
         import_fn.assert_called_once_with(
             switcher_cls.return_value, "/tmp/x", force=True
@@ -418,7 +418,7 @@ class TestCLI:
         """--upgrade should call run_self_upgrade and skip switcher init."""
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch(
-                 "claude_swap.update_check.run_self_upgrade", return_value=0
+                 "claude_swap.fork_update.run_self_upgrade", return_value=0
              ) as upgrade_fn, \
              patch.object(sys, "argv", ["claude-swap", "--upgrade"]):
             with pytest.raises(SystemExit) as excinfo:
@@ -898,7 +898,7 @@ class TestSubcommandAliases:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "switch", "2"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
         switcher_cls.return_value.switch_to.assert_called_once_with(
             "2", json_output=False, force=False
@@ -909,7 +909,7 @@ class TestSubcommandAliases:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "switch"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
         switcher_cls.return_value.switch.assert_called_once_with(
             strategy=None, json_output=False, models=(), model_source=None
@@ -921,7 +921,7 @@ class TestSubcommandAliases:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "list", "--json"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             switcher_cls.return_value.list_accounts.return_value = payload
             cli.main()
         switcher_cls.return_value.list_accounts.assert_called_once_with(
@@ -990,7 +990,7 @@ class TestJsonOutputCli:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "--list", "--json"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             switcher_cls.return_value.list_accounts.return_value = payload
             cli.main()
 
@@ -1005,7 +1005,7 @@ class TestJsonOutputCli:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "--switch", "--json"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             switcher_cls.return_value.switch.return_value = payload
             cli.main()
 
@@ -1024,7 +1024,7 @@ class TestJsonOutputCli:
                  "--model", "Fable", "--json",
              ]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             switcher_cls.return_value.switch.return_value = payload
             cli.main()
 
@@ -1039,7 +1039,7 @@ class TestJsonOutputCli:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", "--status", "--json"]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             switcher_cls.return_value.status.side_effect = ConfigError("nope")
             with pytest.raises(SystemExit) as excinfo:
                 cli.main()
@@ -1716,7 +1716,7 @@ class TestDisableEnableDispatch:
         with patch("claude_swap.cli.ClaudeAccountSwitcher") as switcher_cls, \
              patch.object(sys, "argv", ["claude-swap", *argv]), \
              patch("os.geteuid", return_value=1000, create=True), \
-             patch("claude_swap.update_check.check_for_update", return_value=None):
+             patch("claude_swap.fork_update.check_for_update", return_value=None):
             cli.main()
         return switcher_cls.return_value
 

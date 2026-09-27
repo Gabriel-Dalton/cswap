@@ -1440,7 +1440,7 @@ The original flag spellings (%(prog)s --switch, %(prog)s --list, ...) keep worki
     # Self-upgrade runs before switcher init so we don't touch config/keychain
     # just to upgrade the tool itself.
     if args.upgrade:
-        from claude_swap.update_check import run_self_upgrade
+        from claude_swap.fork_update import run_self_upgrade
 
         try:
             sys.exit(run_self_upgrade())
@@ -1569,7 +1569,7 @@ The original flag spellings (%(prog)s --switch, %(prog)s --list, ...) keep worki
     # the directory we just deleted. Skipped after --upgrade as a safety guard
     # in case the dispatch is later refactored to fall through.
     if not args.purge and not args.upgrade and not args.json:
-        from claude_swap.update_check import check_for_update
+        from claude_swap.fork_update import check_for_update
 
         msg = check_for_update(__version__)
         if msg:
