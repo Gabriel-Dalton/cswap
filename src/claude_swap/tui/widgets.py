@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from rich.text import Text
 from textual.widgets import ListItem, Static
 
-from claude_swap import codex, pace
+from claude_swap import codex, pace, recommend
 from claude_swap.json_output import USAGE_API_KEY
 from claude_swap.models import AccountSnapshot
 from claude_swap.switcher import ERROR_NOTES
@@ -439,6 +439,49 @@ class CodexPanel(Static):
             text.append(
                 codex_card_text(acc, codex.cached_usage(acc), width, now=now, palette=palette)
             )
+        return text
+
+
+class UseNextPanel(Static):
+    """Which account to use next, from the live snapshot plus Codex's logs."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._models: tuple[str, ...] = ()
+
+    def on_mount(self) -> None:
+        from claude_swap.settings import load_settings, parse_model_names
+
+        try:
+            self._models = parse_model_names(load_settings(self.app.switcher.backup_dir).model)
+        except Exception:
+            self._models = ()
+        self.watch(self.app, "snapshot", lambda _s: self.refresh(layout=True))
+        self.watch(self.app, "theme", lambda _t: self.refresh(layout=True))
+
+    def render(self) -> Text:
+        app: "CswapApp" = self.app  # type: ignore[assignment]
+        palette = Palette.from_theme(app.current_theme)
+        snap = app.snapshot
+        if snap is None:
+            self.display = False
+            return Text("")
+        now = time.time()
+        candidates = recommend.snapshot_candidates(snap, now=now, models=self._models)
+        candidates += recommend.codex_candidates(now, self._models, cached=True)
+        lines = recommend.format_lines(
+            recommend.recommend(candidates, models=self._models, now=now)
+        )
+        self.display = bool(lines)
+        if not lines:
+            return Text("")
+        head, _, rest = lines[0].partition(": ")
+        text = Text()
+        text.append(f"{head}: ", style=f"bold {palette.muted}")
+        text.append(rest, style=f"bold {palette.accent}")
+        for line in lines[1:]:
+            text.append("\n")
+            text.append(line, style=palette.muted)
         return text
 
 
