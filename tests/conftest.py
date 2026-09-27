@@ -574,6 +574,18 @@ def block_real_oauth_profile_fetch(request, monkeypatch):
 
 
 @pytest.fixture
+def require_symlinks(tmp_path: Path):
+    """Skip when this user cannot create symlinks (Windows without the privilege)."""
+    target = tmp_path / ".symlink-probe-target"
+    target.write_text("")
+    link = tmp_path / ".symlink-probe"
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation is not permitted here")
+
+
+@pytest.fixture
 def temp_home(tmp_path: Path):
     """Create a temporary home directory for testing."""
     home = tmp_path / "home"

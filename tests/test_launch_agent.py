@@ -117,7 +117,7 @@ def test_resolve_program_prefers_the_console_script(tmp_path):
         assert launch_agent.resolve_program() == [str(script)]
 
 
-def test_resolve_program_keeps_the_symlink_and_does_not_follow_it(tmp_path):
+def test_resolve_program_keeps_the_symlink_and_does_not_follow_it(require_symlinks, tmp_path):
     """`uv tool install` links ~/.local/bin/cswap into the tool's virtualenv.
 
     Resolving that symlink would pin the virtualenv-internal path, which a
