@@ -1,6 +1,6 @@
 # Fork notes
 
-This fork of realiti4/claude-swap adds Codex accounts, conversation handoff,
+cswap is a fork of realiti4/claude-swap. It adds Codex accounts, conversation handoff,
 a use-next recommendation across providers, plan tier labels, and a few
 Windows fixes. Upstream releases are merged in as they appear.
 
@@ -39,7 +39,9 @@ patch targets).
 
 After merging upstream: set `UPSTREAM_BASE` in `fork_update.py` to the
 merged release, bump `version` in `pyproject.toml`, run `uv lock`, run the
-suite, reinstall. On Windows every open `cswap run` window and dashboard
+suite, reinstall. The distribution is named `cswap`; a machine still holding the
+`claude-swap` uv tool should run `uv tool uninstall claude-swap` and then
+`uv tool install <checkout>` once no cswap window is open. On Windows every open `cswap run` window and dashboard
 keeps the tool's launcher resident, so `uv tool install --force --reinstall`
 fails to replace it; `cswap upgrade` prints the install that works there
 (`uv pip install` into the tool environment).

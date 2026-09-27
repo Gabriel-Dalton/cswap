@@ -1,8 +1,11 @@
 """Multi-account switcher for Claude Code."""
 
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 
-__version__ = version("claude-swap")
+try:
+    __version__ = version("cswap")
+except PackageNotFoundError:
+    __version__ = version("claude-swap")
 
 from claude_swap.switcher import ClaudeAccountSwitcher
 

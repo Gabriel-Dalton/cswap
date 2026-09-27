@@ -20,7 +20,8 @@ from claude_swap.update_check import _is_newer
 
 UPSTREAM_REPO = "realiti4/claude-swap"
 UPSTREAM_BASE = "0.27.0b1"
-FORK_REPO = "Gabriel-Dalton/claude-swap"
+FORK_REPO = "Gabriel-Dalton/cswap"
+DIST_NAME = "cswap"
 UPSTREAM_LATEST_URL = f"https://api.github.com/repos/{UPSTREAM_REPO}/releases/latest"
 CACHE_PATH = CACHE_DIR / "fork_update_check.json"
 CACHE_TTL = 24 * 3600
@@ -87,7 +88,7 @@ def upgrade_commands() -> list[list[str]]:
     if sys.platform == "win32":
         install = [
             "uv", "pip", "install", "--python", sys.executable,
-            "--reinstall-package", "claude-swap", target,
+            "--reinstall-package", DIST_NAME, target,
         ]
     else:
         install = ["uv", "tool", "install", "--force", "--reinstall", target]
