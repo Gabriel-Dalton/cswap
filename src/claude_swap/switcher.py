@@ -5426,6 +5426,8 @@ class ClaudeAccountSwitcher:
             if i < len(accounts_info) - 1:
                 print()
 
+        self._print_codex_accounts()
+
         # Safety copies (unclaimed credentials) are deliberately NOT surfaced
         # here: users can't act on them (recovery is always /login + cswap
         # add), and with no GC a one-time event would nag forever. They stay
@@ -5471,6 +5473,38 @@ class ClaudeAccountSwitcher:
                     print(f"  {dimmed('●')} {muted(label)}   {muted(cwd)}  {dimmed(f'({", ".join(parts)})')}")
         except Exception:
             self._logger.debug("Failed to detect running instances", exc_info=True)
+
+    def _print_codex_accounts(self) -> None:
+        """The Codex section of ``cswap list``: one block per CODEX_HOME."""
+        from claude_swap import codex
+
+        try:
+            accounts = codex.load_accounts()
+        except Exception:
+            self._logger.debug("Failed to load Codex accounts", exc_info=True)
+            return
+        if not accounts:
+            return
+        print()
+        print(bolded("Codex:"))
+        for i, acc in enumerate(accounts):
+            usage = codex.read_usage(acc.home)
+            plan = codex.display_plan(acc, usage)
+            label = f"{accent(acc.name)} ({acc.email})" if acc.email else accent(acc.name)
+            tag = f" {muted(f'[{plan}]')}" if plan else ""
+            marker = f" {bold_accent('(default)')}" if acc.is_default else ""
+            print(f"  {label}{tag}{marker}")
+            if not usage.usage:
+                print(f"     {dimmed('usage unknown until Codex is used on this account')}")
+            else:
+                lines = _format_usage_lines(usage.usage)
+                if usage.fetched_at is not None:
+                    lines[-1] += f" · {format_age(int(usage.fetched_at * 1000))}"
+                for j, line in enumerate(lines):
+                    branch = "└" if j == len(lines) - 1 else "├"
+                    print(f"     {dimmed(branch)} {muted(line)}")
+            if i < len(accounts) - 1:
+                print()
 
     def _active_account_usage(
         self, account_num: str, current_email: str, org_uuid: str

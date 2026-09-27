@@ -229,6 +229,76 @@ Examples:
         sys.exit(130)
 
 
+def _codex_command(argv: list[str]) -> None:
+    """Handle `cswap codex [list|add|login|remove|run]`."""
+    from pathlib import Path
+
+    from claude_swap import codex
+
+    if "--" in argv:
+        split = argv.index("--")
+        head, tail = argv[:split], argv[split + 1 :]
+    else:
+        head, tail = argv, []
+
+    parser = argparse.ArgumentParser(
+        prog=f"{_prog_name()} codex",
+        description="Codex CLI accounts: each one is its own CODEX_HOME.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  cswap codex                      list Codex accounts with usage
+  cswap codex add oasis            name the current Codex login
+  cswap codex login work           sign a new account into its own CODEX_HOME
+  cswap codex run work             start Codex as that account, this terminal only
+  cswap codex run work -- resume   forward args after '--' to codex
+  cswap codex remove work          forget an account (its files stay on disk)
+        """,
+    )
+    parser.add_argument(
+        "action", nargs="?", default="list",
+        choices=["list", "ls", "add", "login", "remove", "rm", "run"],
+    )
+    parser.add_argument("target", nargs="?", metavar="NAME")
+    parser.add_argument(
+        "--home", metavar="PATH",
+        help="With 'add': the CODEX_HOME to register (default: the current one)",
+    )
+    parser.add_argument("--json", action="store_true", help="With 'list': emit JSON")
+    args = parser.parse_args(head)
+
+    if args.action not in ("list", "ls") and not args.target:
+        parser.error(f"'{args.action}' needs an account name")
+    if args.home and args.action != "add":
+        parser.error("--home can only be used with 'add'")
+    if args.json and args.action not in ("list", "ls"):
+        parser.error("--json can only be used with 'list'")
+
+    try:
+        if args.action in ("list", "ls"):
+            if args.json:
+                print(json.dumps({"codexAccounts": codex.list_payload()}, indent=2))
+            else:
+                ClaudeAccountSwitcher()._print_codex_accounts()
+        elif args.action == "add":
+            acc = codex.add_account(args.target, Path(args.home) if args.home else None)
+            print(f"Added Codex account {accent(acc.name)} ({acc.email or 'unknown email'})")
+        elif args.action == "login":
+            acc = codex.login_account(args.target)
+            print(f"Added Codex account {accent(acc.name)} ({acc.email or 'unknown email'})")
+        elif args.action in ("remove", "rm"):
+            acc = codex.remove_account(args.target)
+            print(f"Removed Codex account {acc.name} {dimmed(f'({acc.home} left on disk)')}")
+        elif args.action == "run":
+            codex.run_account(args.target, tail)
+    except ClaudeSwitchError as e:
+        error(f"Error: {e}")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print(f"\n{dimmed('Operation cancelled')}")
+        sys.exit(130)
+
+
 def _guard_root(switcher: ClaudeAccountSwitcher) -> None:
     """Refuse to run as root outside a container (shared by run/map/unmap)."""
     if sys.platform != "win32":
@@ -1004,6 +1074,9 @@ def main() -> None:
     if argv and argv[0] == "move":
         _move_command(argv[1:])
         return
+    if argv and argv[0] == "codex":
+        _codex_command(argv[1:])
+        return
 
     # Bare `cswap` in an interactive terminal opens the TUI dashboard (like
     # lazygit/k9s). TTY-gated on both ends so scripts and pipes keep getting
@@ -1043,6 +1116,9 @@ Commands:
   %(prog)s swap <a> <b>               exchange two accounts' slot numbers
   %(prog)s move <a> <slot>            assign an account to a slot (swaps if taken)
   %(prog)s auto                       auto-switch when nearing rate limits
+  %(prog)s codex                      list Codex accounts with usage
+  %(prog)s codex add|login <name>     add a Codex account (see 'codex -h')
+  %(prog)s codex run <name> [-- ...]  run Codex as an account, this terminal only
   %(prog)s config [set KEY VALUE]     show or change settings (settings.json)
   %(prog)s unclaimed [--purge ID]     list or drop stashed credential entries
   %(prog)s export <path>              export accounts
@@ -1388,6 +1464,10 @@ The original flag spellings (%(prog)s --switch, %(prog)s --list, ...) keep worki
                 show_token_status=args.token_status,
                 json_output=args.json,
             )
+            if payload is not None:
+                from claude_swap import codex
+
+                payload["codexAccounts"] = codex.list_payload()
         elif args.switch:
             from claude_swap.settings import load_settings, parse_model_names
 
