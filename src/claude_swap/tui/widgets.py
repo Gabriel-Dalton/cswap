@@ -245,10 +245,10 @@ def mini_account_text(
 ) -> Text:
     """One minimized line for an inactive account.
 
-    ``2  work@acme.dev [personal]   5h 92% · 7d 63%`` — pcts only, severity
-    colored; a window at/over 100% brings its reset countdown along, and a
-    maxed per-model window shows as ``Fable (!)``. Sentinel states show
-    their label instead.
+    ``2  work@acme.dev [personal]   5h 92% · 7d 63% · Fable 12%`` — pcts only,
+    severity colored; a window at/over 100% brings its reset countdown along,
+    and a maxed per-model window shows as ``Fable 100% (!)``. Sentinel states
+    show their label instead.
     """
     text = Text(no_wrap=True, overflow="ellipsis")
     text.append(f"{acc.number:>2}  ", style=f"bold {palette.muted}")
@@ -291,15 +291,16 @@ def mini_account_text(
             if result and result.ahead:
                 text.append(" (ahead)", style=palette.sev_warn)
         parts += 1
-    maxed = [
-        w["name"]
-        for w in (last_good.get("scoped") or [] if isinstance(last_good, dict) else [])
-        if float(w["pct"]) >= 100
-    ]
-    for name in maxed:
+    for window in last_good.get("scoped") or [] if isinstance(last_good, dict) else []:
+        pct = float(window["pct"])
         if parts:
             text.append(" · ", style=palette.track)
-        text.append(f"{name} (!)", style=palette.sev_crit)
+        text.append(f"{window['name']} ", style=palette.muted)
+        if pct >= 100:
+            text.append(f"{pct:.0f}% (!)", style=palette.sev_crit)
+        else:
+            color = palette.severity(pct)
+            text.append(f"{pct:.0f}%", style=f"{color} dim" if stale else color)
         parts += 1
     if not parts:
         text.append("usage unknown", style=palette.muted)

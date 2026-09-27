@@ -210,3 +210,8 @@ ConfirmModal, AddTokenModal, OutputModal {
 AddTokenModal Input {
     margin-bottom: 1;
 }
+
+WatchScreen #accounts {
+    height: auto;
+    max-height: 1fr;
+}

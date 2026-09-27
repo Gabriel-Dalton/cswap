@@ -662,6 +662,25 @@ class TestMiniAccountText:
         acc = make_account(1, entry=entry)
         assert "pace" not in mini_account_text(acc, now).plain
 
+    def test_scoped_windows_always_shown(self):
+        from claude_swap.tui.widgets import mini_account_text
+
+        now = time.time()
+        entry = UsageEntry(
+            last_good={
+                "seven_day": {"pct": 1.0, "resets_at": _iso_in(86400 * 6)},
+                "scoped": [
+                    {"name": "Fable", "pct": 2.0, "resets_at": _iso_in(86400 * 6)},
+                    {"name": "Opus", "pct": 100.0, "resets_at": _iso_in(86400 * 6)},
+                ],
+            },
+            fetched_at=now,
+            age_s=0.0,
+        )
+        plain = mini_account_text(make_account(1, entry=entry), now).plain
+        assert "Fable 2%" in plain
+        assert "Opus 100% (!)" in plain
+
 
 class TestRunAction:
     def test_captures_output_and_payload(self):
