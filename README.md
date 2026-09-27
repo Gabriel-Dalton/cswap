@@ -204,6 +204,25 @@ cswap purge                     # Remove all claude-swap data
 
 The original flag spellings (`cswap --switch`, `cswap --list`, ...) keep working.
 
+## Codex accounts
+
+This copy also tracks Codex CLI accounts. Each one is its own `CODEX_HOME`; the default login (`$CODEX_HOME` or `~/.codex`) is always listed.
+
+```bash
+cswap codex                     # Codex accounts with usage
+cswap codex add oasis           # name the current Codex login
+cswap codex login work          # sign another account into its own CODEX_HOME
+cswap codex run work            # start Codex as that account, this terminal only
+cswap codex run work -- resume  # forward args after '--' to codex
+cswap codex remove work         # forget an account (its files stay on disk)
+```
+
+Codex accounts also appear under the Claude ones in `cswap list`, `cswap list --json` (as `codexAccounts`), the dashboard and `cswap watch`.
+
+Usage is read from Codex's own session logs, so it needs no network call and never touches your login. It is only as fresh as the last Codex turn on that account, which is why every reading shows its age. A window whose reset time has passed shows 0%.
+
+Codex accounts are not part of auto-switching.
+
 ## Tips
 
 - **Do you need to restart after switching?** Usually not. On **Linux and Windows**, credentials are stored in a file and Claude Code re-reads them whenever that file changes, so the new account takes effect on your next message — no restart needed. On **macOS**, credentials live in the Keychain, which Claude Code caches for about 30 seconds; a running session picks up the switch once that cache expires. Restart Claude Code (or close and reopen the VS Code extension tab) only if you want the change to apply instantly.

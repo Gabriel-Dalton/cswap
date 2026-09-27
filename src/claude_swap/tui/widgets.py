@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from rich.text import Text
 from textual.widgets import ListItem, Static
 
-from claude_swap import pace
+from claude_swap import codex, pace
 from claude_swap.json_output import USAGE_API_KEY
 from claude_swap.models import AccountSnapshot
 from claude_swap.switcher import ERROR_NOTES
@@ -356,6 +356,81 @@ class AccountsPanel(Static):
                 text.append("\n\n" if (multiline or previous_multiline) else "\n")
             text.append(block)
             previous_multiline = multiline
+        return text
+
+
+def codex_card_text(
+    acc: "codex.CodexAccount",
+    usage: "codex.CodexUsage",
+    width: int,
+    *,
+    now: float,
+    palette: Palette = Palette.DARK,
+) -> Text:
+    """One Codex account: header line + the same bar rows a Claude card uses."""
+    text = Text()
+    text.append(" C  ", style=f"bold {palette.muted}")
+    text.append(acc.name, style=f"bold {palette.accent}")
+    if acc.email:
+        text.append(f" ({acc.email})", style=palette.foreground)
+    plan = codex.display_plan(acc, usage)
+    if plan:
+        text.append(f"  [{plan}]", style=palette.muted)
+    if usage.limit_reached:
+        text.append("   ⚠ limit reached", style=palette.sev_crit)
+    age = usage.age_s
+    if age is not None:
+        text.append(f"   · as of {data.format_duration(age)} ago", style=palette.muted)
+
+    rows = usage_rows(usage.usage, now, usage.fetched_at)
+    if not rows:
+        text.append("\n    ")
+        text.append("usage unknown until Codex is used on this account", style=palette.muted)
+        return text
+    label_width = max(len(label) for label, _pct, _suffix, _full in rows)
+    bar_width = max(12, min(30, width - 42 - label_width))
+    row_overhead = 4 + label_width + 1 + bar_width + 5 + 2
+    for label, pct, suffix, suffix_full in rows:
+        if suffix_full != suffix and row_overhead + len(suffix_full) <= width:
+            suffix = suffix_full
+        text.append("\n    ")
+        text.append(
+            usage_bar(
+                f"{label:<{label_width}}", pct, suffix or None, bar_width,
+                palette=palette,
+            )
+        )
+    return text
+
+
+class CodexPanel(Static):
+    """Codex accounts under the Claude ones, re-read from Codex's session logs."""
+
+    REFRESH_S = 30.0
+
+    def on_mount(self) -> None:
+        self.watch(self.app, "theme", lambda _t: self.refresh(layout=True))
+        self.set_interval(self.REFRESH_S, lambda: self.refresh(layout=True))
+
+    def render(self) -> Text:
+        app: "CswapApp" = self.app  # type: ignore[assignment]
+        palette = Palette.from_theme(app.current_theme)
+        try:
+            accounts = codex.load_accounts()
+        except Exception:
+            accounts = []
+        if not accounts:
+            self.display = False
+            return Text("")
+        self.display = True
+        now = time.time()
+        width = (self.size.width or 80) - 2
+        text = Text("codex", style=f"bold {palette.muted}")
+        for acc in accounts:
+            text.append("\n")
+            text.append(
+                codex_card_text(acc, codex.cached_usage(acc), width, now=now, palette=palette)
+            )
         return text
 
 
