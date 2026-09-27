@@ -46,6 +46,10 @@ keeps the tool's launcher resident, so `uv tool install --force --reinstall`
 fails to replace it; `cswap upgrade` prints the install that works there
 (`uv pip install` into the tool environment).
 
+README images are SVGs in `assets/`, regenerated with
+`uv run python docs/screenshots.py` (placeholder identities; pass
+`CSWAP_SCREENSHOT_SESSION=<id>` to render the handoff frame).
+
 ## Findings
 
 - A running Claude Code session exposes `CLAUDE_CODE_SESSION_ID` and

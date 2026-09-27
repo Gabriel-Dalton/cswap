@@ -4,6 +4,8 @@ Multi-account switcher for Claude Code and Codex. See every subscription's quota
 
 A fork of [realiti4/claude-swap](https://github.com/realiti4/claude-swap); the `cswap` command and the `claude_swap` package name are unchanged so upstream releases keep merging in. Fork-specific notes live in [docs/fork-plan.md](docs/fork-plan.md).
 
+<img src="assets/dashboard.svg" width="800" alt="cswap dashboard: three Claude accounts with plan tiers and usage bars, a Codex account, and the use-next recommendation">
+
 ## Installation
 
 ### Using uv (recommended)
@@ -178,6 +180,8 @@ cswap handoff team --session <id>     # a specific session id
 cswap handoff 2 --no-launch           # copy only; prints the command to resume
 ```
 
+<img src="assets/handoff.svg" width="800" alt="cswap handoff output: the session copied to account 3 and the command that resumes it">
+
 Inside a session, `cswap handoff` reads the session id from `CLAUDE_CODE_SESSION_ID`; outside one it takes the newest conversation for the current directory. The transcript is copied, never moved, so the original account keeps its copy. Handing off to the account that is the default login resumes with plain `claude --resume`. The new window opens with Windows Terminal when `wt` is available; elsewhere the command to run is printed instead.
 
 A session started with `cswap run` registers under its own profile, so sessions on the default login cannot list or message it, and vice versa. That is Claude Code's per-config-dir session registry, not something cswap can bridge.
@@ -186,9 +190,25 @@ A session started with `cswap run` registers under its own profile, so sessions 
 
 Run `cswap` on its own (or `cswap tui`) for the full-screen dashboard: live usage for every account, switching, and the auto-switcher, all keyboard-driven. `cswap watch` opens it straight to the live monitor. Works on macOS, Linux, and Windows.
 
-The dashboard also shows which account to use next (see below). Selecting an account rewrites the default login by default; with `cswap config set ui.selectAction run` it opens a new terminal window running `cswap run <account>` instead, leaving the default login alone.
+The dashboard also shows [which account to use next](#which-account-to-use-next). Selecting an account rewrites the default login by default; with `cswap config set ui.selectAction run` it opens a new terminal window running `cswap run <account>` instead, leaving the default login alone.
 
-<img src="assets/tui-watch.png" width="760" alt="cswap watch — live 5h/7d usage bars for every account, with reset times and the active account marked">
+<img src="assets/watch.svg" width="800" alt="cswap watch: live 5h, 7d and per-model usage bars for every account, the Codex account, and the use-next line">
+
+<img src="assets/switch.svg" width="800" alt="cswap switch screen: pick an account to switch to, or press b for the best pick">
+
+### Which account to use next
+
+Weekly quota is the perishable kind: whatever is unused when the window resets is gone. `cswap list`, `cswap list --json` (as `useNext`) and the dashboard rank every Claude and Codex account by the share of its week still unused divided by the days left until that reset, so the account losing the most per day comes first. Accounts at a limit, disabled, or without usage data are listed last with the reason.
+
+```bash
+cswap list                      # ends with a "Use next" line
+cswap list --model fable        # only accounts that can run Fable
+cswap list --json               # useNext.best and the full ranking
+```
+
+`--model` skips accounts whose usage reports no weekly window for that model, and folds the model's window into each account's headroom; the `autoswitch.model` setting applies when the flag is absent.
+
+<img src="assets/list.svg" width="800" alt="cswap list output: each account with plan tier and usage windows, the Codex account, and the use-next ranking">
 
 ### Refresh expired tokens
 

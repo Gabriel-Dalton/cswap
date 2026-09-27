@@ -13,7 +13,10 @@ dependencies = [
     "textual>=8.2.8,<9",
     "truststore>=0.10.4",
 ]
-authors = [{name = "Onur Cetinkol", email = "onurcetinkol@gmail.com"}]
+authors = [
+    {name = "Onur Cetinkol", email = "onurcetinkol@gmail.com"},
+    {name = "Gabriel Dalton"},
+]
 license = {text = "MIT"}
 keywords = ["claude", "claude-code", "codex", "account-switcher", "cli"]
 classifiers = [
