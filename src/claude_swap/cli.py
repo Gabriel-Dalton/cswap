@@ -1090,6 +1090,11 @@ def main() -> None:
     if argv and argv[0] == "codex":
         _codex_command(argv[1:])
         return
+    if argv and argv[0] == "handoff":
+        from claude_swap.handoff import command as _handoff_command
+
+        _handoff_command(argv[1:])
+        return
 
     # Bare `cswap` in an interactive terminal opens the TUI dashboard (like
     # lazygit/k9s). TTY-gated on both ends so scripts and pipes keep getting
@@ -1129,6 +1134,7 @@ Commands:
   %(prog)s swap <a> <b>               exchange two accounts' slot numbers
   %(prog)s move <a> <slot>            assign an account to a slot (swaps if taken)
   %(prog)s auto                       auto-switch when nearing rate limits
+  %(prog)s handoff <num|email>        move this conversation to an account (see 'handoff -h')
   %(prog)s codex                      list Codex accounts with usage
   %(prog)s codex add|login <name>     add a Codex account (see 'codex -h')
   %(prog)s codex run <name> [-- ...]  run Codex as an account, this terminal only

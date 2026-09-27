@@ -162,6 +162,24 @@ Subfolders inherit the nearest mapped ancestor. In an unmapped directory, `cswap
 
 </details>
 
+### Move one conversation to another account (handoff)
+
+Three ways to change account, from coarsest to finest:
+
+- `cswap switch <account>` rewrites the default login. Every window on the default login picks the new account up on its next message, and so does the status line. All or nothing.
+- `cswap handoff <account>` moves **one** conversation. It copies that conversation's transcript into the target account's profile and opens a new terminal window resuming it there. Nothing else changes: the default login, other windows and the status line stay where they are. Close the old window once the new one is up.
+- Inside Claude Code, `/swap <account>` does the same for the conversation you are in. Install it once with `cswap handoff --install-command`; session profiles pick it up on their next `cswap run`.
+
+```bash
+cswap handoff 2                       # this window's conversation → account 2, new window
+cswap handoff team --session <id>     # a specific session id
+cswap handoff 2 --no-launch           # copy only; prints the command to resume
+```
+
+Inside a session, `cswap handoff` reads the session id from `CLAUDE_CODE_SESSION_ID`; outside one it takes the newest conversation for the current directory. The transcript is copied, never moved, so the original account keeps its copy. Handing off to the account that is the default login resumes with plain `claude --resume`. The new window opens with Windows Terminal when `wt` is available; elsewhere the command to run is printed instead.
+
+A session started with `cswap run` registers under its own profile, so sessions on the default login cannot list or message it, and vice versa. That is Claude Code's per-config-dir session registry, not something cswap can bridge.
+
 ### Interactive dashboard (TUI)
 
 Run `cswap` on its own (or `cswap tui`) for the full-screen dashboard: live usage for every account, switching, and the auto-switcher, all keyboard-driven. `cswap watch` opens it straight to the live monitor. Works on macOS, Linux, and Windows.
