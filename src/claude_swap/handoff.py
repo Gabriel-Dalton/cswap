@@ -109,11 +109,21 @@ def terminal_launcher() -> str | None:
 
 
 def open_new_terminal(command: list[str], cwd: str | Path) -> bool:
-    """Start ``command`` in a fresh Windows Terminal window; False when unavailable."""
-    wt = terminal_launcher()
-    if not wt:
+    """Start ``command`` under cmd in a fresh window; False when unavailable."""
+    if sys.platform != "win32":
         return False
-    subprocess.Popen([wt, "-w", "new", "-d", str(cwd), *command], close_fds=True)
+    wt = terminal_launcher()
+    if wt:
+        subprocess.Popen(
+            [wt, "-w", "new", "-d", str(cwd), "cmd", "/k", *command], close_fds=True
+        )
+    else:
+        subprocess.Popen(
+            ["cmd", "/k", *command],
+            cwd=str(cwd),
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+            close_fds=True,
+        )
     return True
 
 

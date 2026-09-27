@@ -85,17 +85,29 @@ class TestResumeCommand:
 
 
 class TestOpenNewTerminal:
-    def test_false_off_windows_or_without_wt(self, monkeypatch):
-        monkeypatch.setattr(handoff.shutil, "which", lambda name: None)
+    def test_false_off_windows(self, monkeypatch):
+        monkeypatch.setattr(handoff.sys, "platform", "linux")
         assert handoff.open_new_terminal(["claude"], ".") is False
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows Terminal only")
-    def test_uses_wt_new_window_in_cwd(self, monkeypatch):
+    def test_uses_wt_new_window_running_cmd_in_cwd(self, monkeypatch):
         monkeypatch.setattr(handoff.shutil, "which", lambda name: r"C:\wt.exe")
         calls = []
         monkeypatch.setattr(handoff.subprocess, "Popen", lambda argv, **kw: calls.append(argv))
         assert handoff.open_new_terminal(["cswap", "run", "2"], r"C:\repo") is True
-        assert calls == [[r"C:\wt.exe", "-w", "new", "-d", r"C:\repo", "cswap", "run", "2"]]
+        assert calls == [
+            [r"C:\wt.exe", "-w", "new", "-d", r"C:\repo", "cmd", "/k", "cswap", "run", "2"]
+        ]
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows console only")
+    def test_falls_back_to_cmd_console_without_wt(self, monkeypatch):
+        monkeypatch.setattr(handoff.shutil, "which", lambda name: None)
+        calls = []
+        monkeypatch.setattr(
+            handoff.subprocess, "Popen", lambda argv, **kw: calls.append((argv, kw["cwd"]))
+        )
+        assert handoff.open_new_terminal(["cswap", "run", "2"], r"C:\repo") is True
+        assert calls == [(["cmd", "/k", "cswap", "run", "2"], r"C:\repo")]
 
 
 class _Switcher:
