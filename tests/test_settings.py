@@ -124,6 +124,22 @@ class TestSaveSettings:
         assert mode == 0o600
 
 
+class TestUiSelectAction:
+    def test_default_is_switch(self, tmp_path):
+        assert load_ui_settings(tmp_path).select_action == "switch"
+
+    def test_run_is_read_and_bad_values_fall_back(self, tmp_path):
+        import json as _json
+        (tmp_path / "settings.json").write_text(
+            _json.dumps({"schemaVersion": 1, "ui": {"selectAction": "run"}})
+        )
+        assert load_ui_settings(tmp_path).select_action == "run"
+        (tmp_path / "settings.json").write_text(
+            _json.dumps({"schemaVersion": 1, "ui": {"selectAction": "teleport"}})
+        )
+        assert load_ui_settings(tmp_path).select_action == "switch"
+
+
 class TestUiSettings:
     def test_missing_file_defaults_to_auto(self, tmp_path: Path):
         assert load_ui_settings(tmp_path) == UiSettings(theme="auto")

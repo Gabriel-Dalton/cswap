@@ -79,9 +79,12 @@ class CswapApp(App):
         except Exception:
             self.threshold_pct = None
         try:
-            self._theme_name = load_ui_settings(switcher.backup_dir).theme
+            ui = load_ui_settings(switcher.backup_dir)
+            self._theme_name = ui.theme
+            self.select_action = ui.select_action
         except Exception:
             self._theme_name = "auto"
+            self.select_action = "switch"
 
     def on_mount(self) -> None:
         self.register_theme(CSWAP_DARK)
@@ -284,10 +287,28 @@ class CswapApp(App):
     # -- account operations ----------------------------------------------------
 
     def do_switch(self, number: str) -> None:
+        if self.select_action == "run":
+            self.run_in_new_window(number)
+            return
         self._start_action(
             f"Switch to account {number}",
             partial(self.switcher.switch_to, number, json_output=True),
         )
+
+    def run_in_new_window(self, number: str) -> None:
+        """Open a terminal running ``cswap run <number>``; the default login is untouched."""
+        import os
+
+        from claude_swap import handoff
+
+        command = ["cswap", "run", number]
+        if handoff.open_new_terminal(command, os.getcwd()):
+            self.notify(f"Opened a new window as account {number}", title="Run")
+        else:
+            self.notify(
+                f"No terminal launcher here; run: {' '.join(command)}",
+                title="Run", severity="warning",
+            )
 
     def action_switch_best(self) -> None:
         self._start_action(
